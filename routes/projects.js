@@ -3,9 +3,12 @@ var router = express.Router();
 var mongoose = require('mongoose')
 
 const Project = require('../models/Project')
-const Task = require('../models/Task')
+const User = require('../models/User')
 
-router.post('/', (req, res, next) => {
+const isAuthenticated = require('../middleware/isAuthenticated')
+const isOwner = require('../middleware/isOwner')
+
+router.post('/', isAuthenticated, (req, res, next) => {
 
     const { title, description } = req.body
 
@@ -13,6 +16,7 @@ router.post('/', (req, res, next) => {
         {
             title,
             description,
+            owner: req.user._id,
             tasks: []
         }
     )
@@ -30,7 +34,7 @@ router.post('/', (req, res, next) => {
 router.get('/', (req, res, next) => {
 
     Project.find()
-        .populate('tasks')
+        .populate('tasks owner')
         .then((foundProjects) => {
             console.log("Found Projects ==>", foundProjects)
             res.json(foundProjects)
@@ -53,13 +57,13 @@ router.get('/:projectId', (req, res, next) => {
     // Each Project document has a `tasks` array holding `_id`s of Task documents
     // We use .populate() method to get swap the `_id`s for the actual Task documents
     Project.findById(projectId)
-      .populate('tasks')
+      .populate('tasks owner')
       .then(project => res.status(200).json(project))
       .catch(error => res.json(error));
   });
    
   // PUT  /api/:projectId  -  Updates a specific project by id
-  router.put('/:projectId', (req, res, next) => {
+  router.put('/:projectId', isAuthenticated, isOwner, (req, res, next) => {
     const { projectId } = req.params;
    
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
@@ -74,7 +78,7 @@ router.get('/:projectId', (req, res, next) => {
   });
    
   // DELETE  /api/:projectId  -  Deletes a specific project by id
-  router.delete('/:projectId', (req, res, next) => {
+  router.delete('/:projectId', isAuthenticated, isOwner, (req, res, next) => {
     const { projectId } = req.params;
    
     if (!mongoose.Types.ObjectId.isValid(projectId)) {

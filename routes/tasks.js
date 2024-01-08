@@ -4,21 +4,24 @@ var router = express.Router();
 const Task = require('../models/Task')
 const Project = require('../models/Project')
 
-router.post('/', (req, res, next) => {
+const isAuthenticated = require('../middleware/isAuthenticated')
+const isOwner = require('../middleware/isOwner')
 
-    const { title, description, projectId } = req.body
+router.post('/:projectId', isAuthenticated, isOwner, (req, res, next) => {
+
+    const { title, description} = req.body
 
     Task.create(
         {
             title,
             description,
-            project: projectId
+            project: req.params.projectId
         }
     )
     .then((createdTask) => {
         console.log("New Task ===>", createdTask)
         return Project.findByIdAndUpdate(
-            projectId,
+            req.params.projectId,
             {
                 $push: { tasks: createdTask._id }
             },
